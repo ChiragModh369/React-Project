@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import FeaturedCourses from '@/components/FeaturedCourses';
@@ -51,7 +50,6 @@ const Index = () => {
                   </Link>
                 </Button>
               </div>
-
             </div>
             
             <div className="w-full lg:w-1/2 relative">
@@ -145,6 +143,20 @@ const Index = () => {
       
       {/* CV Builder Section */}
       <CVBuilder />
+      
+      {/* Become a Coach Section */}
+      <section className="py-12 bg-cyber-dark-blue/30">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-cyber-blue mb-4">Join Our Team as a Coach</h2>
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+            Passionate about cybersecurity and eager to mentor the next generation? Reach out to us at{' '}
+            <a href="mailto:info@cyberquays.com" className="text-cyber-blue hover:underline">
+              info@cyberquays.com
+            </a>{' '}
+            to become a coach and inspire future experts. Our admin team will guide you through the process!
+          </p>
+        </div>
+      </section>
       
       <Footer />
     </div>

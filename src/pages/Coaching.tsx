@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CalendarIcon, FileText, Upload } from "lucide-react";
+import { CalendarIcon, FileText, Linkedin, Upload } from "lucide-react";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -460,6 +460,18 @@ const Coaching = () => {
                       </div>
                       <h3 className="text-xl font-bold mb-1">{coach.name}</h3>
                       <p className="text-cyber-blue mb-2">{coach.profession}</p>
+                      {coach.linkedin && (
+                        <a 
+                          href={coach.linkedin.startsWith('http') ? coach.linkedin : `https://${coach.linkedin}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-cyber-blue hover:text-cyber-blue/80 mb-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Linkedin className="w-4 h-4" />
+                          <span className="text-sm">LinkedIn Profile</span>
+                        </a>
+                      )}
                       <div className="flex flex-wrap justify-center gap-2 mb-3">
                         {coach?.skills.map((skill, index) => (
                           <span
@@ -597,7 +609,7 @@ const Coaching = () => {
                       name="timeSlot"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Time Slot</FormLabel>
+                          <FormLabel>Time Slot {coachMainData?.find(c => c.coach_id === selectedCoach)?.timezone? ` (${coachMainData.find(c => c.coach_id === selectedCoach)?.timezone})`: ''}</FormLabel>
                           <div className="grid grid-cols-2 gap-2">
                             {timeSlotMainData[0]?.timeslots?.map((slot) => {
                               const slotId = String(slot.time_slots_id);

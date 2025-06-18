@@ -64,6 +64,7 @@ import {
 } from "@/redux/actions/types/reduxConst";
 import useApiStatusHandler from "@/hooks/useApiStatusHandler";
 import { Loader } from "@/components/ui/loader";
+import { JobProps } from "@/types/jobTypes";
 
 const CVBuilderPage = () => {
   const dispatch = useDispatch();
@@ -76,7 +77,8 @@ const CVBuilderPage = () => {
   const [activeTab, setActiveTab] = useState("personal");
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedJob, setSelectedJob] = useState(null);
+  const [selectedJob, setSelectedJob] = useState<JobProps | null>(null);
+  const [jobUrl, setJobUrl] = useState<string | undefined>(undefined); // Store the job URL
   const isInitialMount = useRef(true);
 
   const {
@@ -195,8 +197,10 @@ const CVBuilderPage = () => {
   const originalEducationDataRef = useRef(null);
   const originalSkillDataRef = useRef(null);
 
-   useEffect(() => {
-    showLog("Dispatching template, profile, experiences, educations, skills, skill categories, and proficiency levels fetch");
+  useEffect(() => {
+    showLog(
+      "Dispatching template, profile, experiences, educations, skills, skill categories, and proficiency levels fetch"
+    );
     dispatch({ type: INITIATE_FETCH_READ_TEMPLATES, payload: {} });
     dispatch({ type: INITIATE_FETCH_READ_PROFILE });
     dispatch({ type: INITIATE_FETCH_READ_EXPERIENCES, payload: {} });
@@ -722,8 +726,9 @@ const CVBuilderPage = () => {
     setActiveStep("details");
   };
 
-  const handleJobSelect = (job) => {
+  const handleJobSelect = (job: JobProps | null, url?: string) => {
     setSelectedJob(job);
+    setJobUrl(url); // Update the job URL
   };
 
   const handleEnhanceResume = async () => {
@@ -781,6 +786,22 @@ const CVBuilderPage = () => {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleApplyNow = () => {
+    if (jobUrl) {
+      window.open(jobUrl, '_blank');
+      toast({
+        title: "Applying Now",
+        description: "Redirecting to the job application page.",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "No application URL available for this job.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -918,11 +939,16 @@ const CVBuilderPage = () => {
                           )}
                         </TabsContent>
                         <TabsContent value="skills">
-                          {isSkillLoading || isSkillCategoryLoading || isProficiencyLevelLoading ? (
+                          {isSkillLoading ||
+                          isSkillCategoryLoading ||
+                          isProficiencyLevelLoading ? (
                             <Loader />
                           ) : (
                             <>
-                              <SkillsForm storeSkill={storeSkill} deleteSkill={deleteSkill} />
+                              <SkillsForm
+                                storeSkill={storeSkill}
+                                deleteSkill={deleteSkill}
+                              />
                               <div className="flex justify-between mt-6">
                                 <Button
                                   variant="outline"
@@ -959,6 +985,14 @@ const CVBuilderPage = () => {
                       onJobSelect={handleJobSelect}
                     />
                     <div className="flex flex-col gap-4 mt-6">
+                      {selectedJob && (
+                        <Button
+                          onClick={handleApplyNow}
+                          className="bg-cyber-green hover:bg-cyber-green/80 text-black"
+                        >
+                          Apply Now
+                        </Button>
+                      )}
                       <Button
                         onClick={handleEnhanceResume}
                         disabled={isEnhancing}

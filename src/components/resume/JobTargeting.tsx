@@ -1,93 +1,160 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Search, CheckSquare } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchCyberSecurityJobs } from '@/services/jobsService';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import Select from 'react-select'; // Import react-select
+import { fetchReadJobsAction } from '@/redux/actions/mainAction';
+import { showLog } from '@/commonFunctions/Functions';
+import { CLEAR_READ_JOBS } from '@/redux/actions/types/reduxConst';
+import { useToast } from '@/components/ui/use-toast';
+import useApiStatusHandler from '@/hooks/useApiStatusHandler';
+import { JobProps } from '@/types/jobTypes';
 
 interface JobTargetingProps {
-  selectedJob: any;
-  onJobSelect: (job: any) => void;
+  selectedJob: JobProps | null;
+  onJobSelect: (job: JobProps | null, url?: string) => void; // Updated to include URL
 }
 
 const JobTargeting = ({ selectedJob, onJobSelect }: JobTargetingProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const { data: jobs, isLoading } = useQuery({
-    queryKey: ['jobs', searchQuery],
-    queryFn: () => fetchCyberSecurityJobs(searchQuery),
-    enabled: searchQuery.length > 0
+  const dispatch = useDispatch();
+  const { toast } = useToast();
+
+  // Redux state
+  const {
+    isJobsLoading,
+    jobStatusCode,
+    jobMessage,
+    jobMainData,
+  } = useSelector((state: any) => state.readJobReducer);
+
+  // Clear API state
+  const clearAPI = () => {
+    dispatch({ type: CLEAR_READ_JOBS });
+  };
+
+  // Handle API status
+  useApiStatusHandler({
+    statusCode: jobStatusCode,
+    message: jobMessage,
+    mainData: jobMainData,
+    clearAPI,
+    onSuccess: (mainData) => {
+      showLog('Jobs fetched for targeting', mainData.length);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch jobs. Please try again.',
+        variant: 'destructive',
+      });
+    },
+    toast,
   });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // The query will automatically trigger due to the useQuery hook
+  // Fetch jobs with debounce
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const data: { search?: string } = {};
+      if (searchQuery.trim() !== '') data.search = searchQuery;
+      showLog('Fetching jobs for targeting', data);
+      dispatch(fetchReadJobsAction(data));
+    }, 500); // Debounce 500ms
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery, dispatch]);
+
+  // Format jobs for react-select
+  const jobOptions = jobMainData?.map((job: JobProps) => ({
+    value: job.id,
+    label: `${job.job_title} at ${job.company_name} (${job.location})`,
+    job, // Store full job object for selection
+  })) || [];
+
+  // Handle job selection
+  const handleJobChange = (selectedOption: any) => {
+    const selectedJob = selectedOption ? selectedOption.job : null;
+    const url = selectedJob?.url; // Extract URL from selected job
+    onJobSelect(selectedJob, url); // Pass both job and URL
   };
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <Input
-          placeholder="Search for jobs to target your resume..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1"
-        />
-        <Button type="submit" disabled={isLoading}>
-          <Search className="w-4 h-4 mr-2" />
-          Search
-        </Button>
-      </form>
+    <div className="space-y-4 relative z-0">
+      <Select
+        options={jobOptions}
+        value={jobOptions.find((option) => option.value === selectedJob?.id) || null}
+        onChange={handleJobChange}
+        onInputChange={(inputValue) => setSearchQuery(inputValue)}
+        placeholder="Search and select a job to target..."
+        isClearable
+        isSearchable
+        isLoading={isJobsLoading} // Show loading state in the dropdown
+        noOptionsMessage={() =>
+          searchQuery ? 'No jobs found' : 'Start typing to search jobs'
+        }
+        classNamePrefix="react-select"
+        styles={{
+          control: (base) => ({
+            ...base,
+            backgroundColor: '#1A202C', // Dark background to match UI
+            borderColor: '#4A5568', // Border color to match UI
+            borderRadius: '0.375rem', // Rounded corners
+            minHeight: '38px',
+            color: '#E2E8F0', // Text color
+            boxShadow: 'none', // Remove default shadow
+            '&:hover': {
+              borderColor: '#A0AEC0', // Lighter border on hover
+            },
+          }),
+          menu: (base) => ({
+            ...base,
+            backgroundColor: '#1A202C', // Solid dark background
+            border: '1px solid #4A5568',
+            borderRadius: '0.375rem',
+            zIndex: 1000, // High z-index to appear above buttons
+            marginTop: '4px',
+          }),
+          option: (base, state) => ({
+            ...base,
+            backgroundColor: state.isSelected
+              ? '#38B2AC' // Cyan/green highlight for selected (matches UI)
+              : state.isFocused
+              ? '#2D3748' // Darker shade for hover
+              : '#1A202C',
+            color: state.isSelected ? '#FFFFFF' : '#E2E8F0',
+            '&:active': {
+              backgroundColor: '#38B2AC',
+            },
+          }),
+          singleValue: (base) => ({
+            ...base,
+            color: '#E2E8F0',
+          }),
+          input: (base) => ({
+            ...base,
+            color: '#E2E8F0',
+          }),
+          placeholder: (base) => ({
+            ...base,
+            color: '#A0AEC0',
+          }),
+          dropdownIndicator: (base) => ({
+            ...base,
+            color: '#E2E8F0',
+            '&:hover': {
+              color: '#A0AEC0',
+            },
+          }),
+          loadingIndicator: (base) => ({
+            ...base,
+            color: '#E2E8F0', // Customize loading indicator color
+          }),
+          loadingMessage: (base) => ({
+            ...base,
+            color: '#E2E8F0',
+          }),
+        }}
+      />
 
-      {isLoading && (
-        <div className="text-center py-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyber-blue mx-auto" />
-        </div>
-      )}
-
-      {jobs && jobs.length > 0 && (
-        <div className="space-y-4">
-          {jobs.map((job) => (
-            <Card
-              key={job.id}
-              className={`cursor-pointer transition-all hover:border-cyber-blue/40 ${
-                selectedJob?.id === job.id ? 'border-cyber-blue bg-cyber-blue/5' : ''
-              }`}
-              onClick={() => onJobSelect(job)}
-            >
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">{job.title}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {job.company} • {job.location}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {job.skills.slice(0, 3).map((skill, index) => (
-                        <Badge key={index} variant="secondary">
-                          {skill}
-                        </Badge>
-                      ))}
-                      {job.skills.length > 3 && (
-                        <Badge variant="secondary">
-                          +{job.skills.length - 3} more
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  {selectedJob?.id === job.id && (
-                    <CheckSquare className="h-5 w-5 text-cyber-blue flex-shrink-0" />
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {jobs && jobs.length === 0 && searchQuery && (
+      {!isJobsLoading && jobMainData && jobMainData.length === 0 && searchQuery && (
         <p className="text-center text-muted-foreground py-4">
           No jobs found matching your search criteria
         </p>
